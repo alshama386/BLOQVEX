@@ -11,3 +11,16 @@ test('Game ends if none of the remaining pieces can fit',()=>{const g=new Puzzle
 test('Theme palette and dimensions valid',()=>{for(const th of Object.values(THEMES))assert.equal(th.colors.length,7);const g=new PuzzleGame({seed:12,theme:'galaxy'});for(const p of g.pieces){const {w,h}=pieceDimensions(p);assert.ok(w>=1&&w<=5);assert.ok(h>=1&&h<=5);}});
 test('Daily seed is deterministic on the same day',()=>assert.equal(dailySeed(),dailySeed()));
 console.log(`\n${runs} tests passed.`);
+
+// Animations are visual-only: record affected colored cells before the board is cleared.
+test('Clear event includes actual colored cells with no duplicate intersections',()=>{
+  let event=null;const g=new PuzzleGame({seed:42,onClear:e=>event=e});
+  for(let i=0;i<SIZE;i++){g.board[0][i]='#ffaa00';g.board[i][0]='#00bbff';}
+  g.board[0][0]=null;
+  g.pieces[0]={cells:[[0,0]],color:'#abcdef'};
+  g.place(0,0,0);
+  assert.equal(event.cleared,2);
+  assert.equal(event.cells.length,15);
+  assert.deepEqual(event.cells.find(c=>c.x===0&&c.y===0),{x:0,y:0,color:'#abcdef'});
+  assert.ok(event.cells.every(c=>typeof c.color==='string'&&c.color.startsWith('#')));
+});
