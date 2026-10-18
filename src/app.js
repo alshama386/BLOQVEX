@@ -7,6 +7,28 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=n=>Number(n||0).toLocaleString(document.documentElement.lang==='ar'?'ar-KW':'en-US');
 const today=()=>{const d=new Date();return [d.getFullYear(),`${d.getMonth()+1}`.padStart(2,'0'),`${d.getDate()}`.padStart(2,'0')].join('-')};
 const LOCAL_KEY='bloqvex_v1_save';
+const BACKGROUND_KEY='bloqvex_background_v1';
+const BACKGROUNDS=[
+  {id:'original',ar:'الأصلية',en:'Original',emoji:'🍭'},
+  {id:'ocean',ar:'البحر',en:'Ocean Breeze',emoji:'🌊'},
+  {id:'sunset',ar:'غروب الشمس',en:'Sunset',emoji:'🌅'},
+  {id:'galaxy',ar:'المجرة',en:'Galaxy',emoji:'🌌'},
+  {id:'mint',ar:'الطبيعة',en:'Mint Garden',emoji:'🌿'},
+  {id:'rose',ar:'الورود',en:'Rose Dream',emoji:'🌷'},
+  {id:'night',ar:'ليل النجوم',en:'Starry Night',emoji:'🌠'},
+  {id:'gold',ar:'الذهبية',en:'Golden Glow',emoji:'🌟'}
+];
+const allowedBackgrounds=new Set(BACKGROUNDS.map(b=>b.id));
+let currentBackground=localStorage.getItem(BACKGROUND_KEY)||'original';
+if(!allowedBackgrounds.has(currentBackground))currentBackground='original';
+function applyBackground(){document.documentElement.dataset.background=currentBackground;}
+function renderBackgrounds(){const host=$('background-options');if(!host)return;host.replaceChildren();for(const bg of BACKGROUNDS){
+  const button=document.createElement('button');button.type='button';button.className='background-choice'+(bg.id===currentBackground?' chosen':'');button.dataset.backgroundChoice=bg.id;button.setAttribute('aria-pressed',String(bg.id===currentBackground));
+  button.innerHTML=`<div class="background-sample sample-${bg.id}"><div class="mini-board-sample"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="background-check">${bg.id===currentBackground?'✓':'＋'}</span></div><strong>${bg.emoji} ${isEn()?bg.en:bg.ar}</strong><small>${bg.id===currentBackground?(isEn()?'In use ✓':'مفعّلة ✓'):(isEn()?'Choose this':'اختيار الخلفية')}</small>`;
+  host.append(button);
+}}
+function chooseBackground(id){if(!allowedBackgrounds.has(id))return;currentBackground=id;try{localStorage.setItem(BACKGROUND_KEY,id)}catch{}applyBackground();renderBackgrounds();toast(isEn()?'Background changed! 🖼️':'تم تغيير الخلفية! 🖼️');}
+
 const DEFAULT={nickname:'لاعب ضيف',country:'KW',coins:100,theme:'candy',unlocked:['candy'],best:{classic:0,sprint:0,daily:0},games:0,lines:0,maxCombo:0,lastDaily:'',scores:[]};
 let local;try{local={...DEFAULT,...JSON.parse(localStorage.getItem(LOCAL_KEY)||'{}')}}catch{local={...DEFAULT}};
 const persist=()=>{try{localStorage.setItem(LOCAL_KEY,JSON.stringify(local))}catch{}};
@@ -14,7 +36,7 @@ const user=()=>api.player||local;
 const theme=()=>user().active_theme||user().theme||'candy';
 const coins=()=>user().coins||0;
 const unlocked=()=>user().unlocked_themes||user().unlocked||['candy'];
-let game=null,selected=null,preview=[],viewName='play',mode='classic',toastTimer=null,clock=null,drag=null,room=null,roomPoll=null,reportTimer=null,localRoomEnded=false,audioOn=localStorage.getItem('bloqvex_audio')!=='false';
+let pendingClear=null,game=null,selected=null,preview=[],viewName='play',mode='classic',toastTimer=null,clock=null,drag=null,room=null,roomPoll=null,reportTimer=null,localRoomEnded=false,audioOn=localStorage.getItem('bloqvex_audio')!=='false';
 const isEn=()=>document.documentElement.lang==='en';
 function toast(msg,isError=false){const el=$('toast');el.textContent=msg;el.classList.toggle('error',isError);el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2800);}
 function error(e){console.error(e);toast(e?.message||'حصل خطأ، حاول مرة ثانية',true);}
@@ -22,15 +44,35 @@ function ping(freq=660,duration=60){if(!audioOn)return;try{const C=window.AudioC
 function openModal(html){$('modal-content').innerHTML=html;$('modal').hidden=false;document.body.style.overflow='hidden';}
 function closeModal(){$('modal').hidden=true;document.body.style.overflow='';}
 function cloudRequired(){if(!api.configured){toast(isEn()?'Connect Supabase in config.js first':'ربط Supabase مطلوب أولاً في config.js',true);return false;}if(!api.account){authModal();return false;}return true;}
-function goView(target){if(target==='admin'&&api.player?.role!=='admin')return;viewName=target;document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`view-${target}`));document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===target));const title=document.querySelector(`[data-view="${target}"] b`);$('page-title').textContent=(title?.textContent||t(target))+' '+({play:'🧩',battle:'⚔️',leaderboard:'🏆',friends:'👥',shop:'🎨',profile:'👤',admin:'🛡️'}[target]||'');window.scrollTo({top:0,behavior:'smooth'});if(target==='leaderboard')renderLeaders();if(target==='shop')renderShop();if(target==='profile')renderProfile();if(target==='friends')renderFriends();if(target==='battle')renderRoom();if(target==='admin')renderAdmin();}
+function goView(target){if(target==='admin'&&api.player?.role!=='admin')return;viewName=target;document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===`view-${target}`));document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===target));const title=document.querySelector(`[data-view="${target}"] b`);$('page-title').textContent=(title?.textContent||t(target))+' '+({play:'🧩',battle:'⚔️',leaderboard:'🏆',friends:'👥',shop:'🎨',backgrounds:'🖼️',profile:'👤',admin:'🛡️'}[target]||'');window.scrollTo({top:0,behavior:'smooth'});if(target==='leaderboard')renderLeaders();if(target==='shop')renderShop();if(target==='backgrounds')renderBackgrounds();if(target==='profile')renderProfile();if(target==='friends')renderFriends();if(target==='battle')renderRoom();if(target==='admin')renderAdmin();}
 function updateIdentity(){const p=user();$('header-user').textContent=api.account?p.nickname:(isEn()?'Guest': 'ضيف');$('coin-count').textContent=fmt(coins());$('cloud-state').textContent=api.account?(isEn()?'Cloud account connected':'الحساب متصل ☁️'):(isEn()?'Guest • ready to play':'وضع الضيف • جاهز للعب');$('admin-nav').hidden=api.player?.role!=='admin';$('best-score').textContent=fmt(local.best[mode]||0);renderProfile();}
 function gameStatus(){if(game?.ended)return isEn()?'Game finished':'انتهت اللعبة';if(game?.mode==='battle')return isEn()?`LIVE BATTLE • ${room?.code}`:`مواجهة مباشرة • ${room?.code}`;return isEn()?'Clear full rows and columns!':'كمّل صف أو عمود عشان تمسحه!';}
 function startGame(nextMode='classic',seed){if(game&&!game.ended&&game.score>0&&game.mode!=='battle')finishGame(true);if(room&&room.state==='active'&&nextMode!=='battle'){toast('You must leave the current battle first',true);return;}
-  mode=nextMode;selected=null;clearPreview();document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
-  game=new PuzzleGame({mode,seed,theme:theme(),onChange:renderGame,onEnd:g=>finishGame(false,g),onClear:ev=>{ping(920,120);if(navigator.vibrate)navigator.vibrate(35);$('game-feedback').textContent=`🔥 ${ev.cleared} ${isEn()?'LINES!':'صفوف!'} x${ev.combo}`;}});
+  mode=nextMode;selected=null;pendingClear=null;$('line-effects').replaceChildren();clearPreview();document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
+  game=new PuzzleGame({mode,seed,theme:theme(),onChange:renderGame,onEnd:g=>finishGame(false,g),onClear:ev=>{pendingClear=ev;ping(920,120);if(navigator.vibrate)navigator.vibrate(35);$('game-feedback').textContent=`🔥 ${ev.cleared} ${isEn()?'LINES!':'صفوف!'} x${ev.combo}`;}});
   $('timer-label').textContent=(mode==='sprint'||mode==='battle')?(isEn()?'TIME':'الوقت'):(isEn()?'LINES':'الصفوف');$('game-feedback').textContent='✨ GO BLOQVEX!';renderGame();}
-function renderGame(){if(!game)return;$('score').textContent=fmt(game.score);$('combo').textContent='×'+game.combo;$('lines').textContent=(mode==='sprint'||mode==='battle')?`${game.remaining()}s`:fmt(game.lines);$('turn-count').textContent=`#${game.turn}`;$('game-status').textContent=gameStatus();const high=Math.max(game.score,local.best[mode]||0);$('best-score').textContent=fmt(high);renderBoard();renderPieces();}
+function renderGame(){if(!game)return;$('score').textContent=fmt(game.score);$('combo').textContent='×'+game.combo;$('lines').textContent=(mode==='sprint'||mode==='battle')?`${game.remaining()}s`:fmt(game.lines);$('turn-count').textContent=`#${game.turn}`;$('game-status').textContent=gameStatus();const high=Math.max(game.score,local.best[mode]||0);$('best-score').textContent=fmt(high);renderBoard();renderPieces();if(pendingClear){const effect=pendingClear;pendingClear=null;animateLineClear(effect);}}
 function renderBoard(){const board=$('board');board.style.direction='ltr';board.replaceChildren();const f=document.createDocumentFragment();for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){const e=document.createElement('div');e.className='cell';e.dataset.x=x;e.dataset.y=y;e.setAttribute('role','gridcell');if(game.board[y][x]){e.classList.add('filled');e.style.setProperty('--block',game.board[y][x]);}f.append(e);}board.append(f);}
+// Animated overlay follows the actual board cell dimensions on iPhone and desktop.
+// The grid updates immediately for scoring while the old blocks fade over ~650ms.
+function animateLineClear(ev){
+  if(!ev?.cells?.length)return;
+  const board=$('board'),wrap=$('board-wrap'),layer=$('line-effects');
+  const bounds=wrap.getBoundingClientRect();
+  for(const {x,y,color} of ev.cells){
+    const target=board.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+    if(!target)continue;
+    const r=target.getBoundingClientRect();
+    const fx=document.createElement('span');fx.className='line-clear-cell';
+    fx.style.left=`${r.left-bounds.left}px`;fx.style.top=`${r.top-bounds.top}px`;
+    fx.style.width=`${r.width}px`;fx.style.height=`${r.height}px`;
+    fx.style.setProperty('--block',color||'#9d80ef');
+    layer.append(fx);
+    fx.addEventListener('animationend',()=>fx.remove(),{once:true});
+    // Timeout also handles reduced-motion settings / background browser tabs.
+    setTimeout(()=>fx.remove(),850);
+  }
+}
 function shapeElement(piece){const {w,h}=pieceDimensions(piece);const e=document.createElement('div');e.className='piece-shape';e.style.gridTemplateColumns=`repeat(${w},auto)`;e.style.gridTemplateRows=`repeat(${h},auto)`;const has=new Set(piece.cells.map(([x,y])=>`${x},${y}`));for(let y=0;y<h;y++)for(let x=0;x<w;x++){const cell=document.createElement('span');cell.className='piece-cell '+(has.has(`${x},${y}`)?'filled':'empty');cell.style.setProperty('--block',piece.color);e.append(cell);}return e;}
 function renderPieces(){const tray=$('piece-tray');tray.style.direction='ltr';tray.replaceChildren();game.pieces.forEach((piece,i)=>{const e=document.createElement('button');e.type='button';e.className='piece'+(selected===i?' selected':'');e.dataset.index=i;e.setAttribute('aria-label',`Shape ${i+1}`);if(!piece||game.ended){e.disabled=true;}else{e.append(shapeElement(piece));}tray.append(e);});}
 function clearPreview(){for(const e of preview)e.classList.remove('preview-valid','preview-invalid');preview=[];}
@@ -94,8 +136,9 @@ async function leaveRoom(){clearInterval(roomPoll);clearTimeout(reportTimer);if(
 async function renderAdmin(){if(api.player?.role!=='admin')return;try{const data=await api.adminNotifications();$('admin-notices').innerHTML=data.map(n=>`<div class="person-row"><div class="person-info"><strong>${esc(n.body)}</strong><small>${esc(n.target_id||'ALL')} · ${new Date(n.created_at).toLocaleString()}</small></div></div>`).join('')||'No announcements';}catch(e){error(e);}}
 async function refreshNotices(){if(!api.account)return;try{const notes=await api.myNotifications(),latest=notes[0];if(latest&&localStorage.getItem('bloqvex_latest_notice')!==String(latest.id)){localStorage.setItem('bloqvex_latest_notice',String(latest.id));toast('📢 '+latest.body);}}catch(e){console.warn('notice',e.message);}}
 function bind(){document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>goView(b.dataset.view)));
- $('language-button').onclick=()=>{switchLang();updateIdentity();renderGame();if(viewName!=='play')goView(viewName);};
+ $('language-button').onclick=()=>{switchLang();updateIdentity();renderGame();renderBackgrounds();if(viewName!=='play')goView(viewName);};
  $('coin-button').onclick=()=>goView('shop');$('auth-button').onclick=()=>authModal();$('profile-auth').onclick=()=>authModal();$('save-profile').onclick=saveProfile;
+ $('open-backgrounds').onclick=()=>goView('backgrounds');$('background-options').addEventListener('click',e=>{const b=e.target.closest('[data-background-choice]');if(b)chooseBackground(b.dataset.backgroundChoice);});
  $('profile-friends').onclick=()=>goView('friends');$('profile-admin').onclick=()=>goView('admin');$('daily-reward').onclick=reward;$('new-game').onclick=()=>{if(room?.state==='active'){toast(isEn()?'Leave the battle first':'طلع من المواجهة أولاً',true);return;}startGame(mode);};
  document.querySelectorAll('.mode-btn').forEach(b=>b.onclick=()=>{if(room?.state==='active'){toast('Exit active room first',true);return;}startGame(b.dataset.mode);});
  $('sprint-shortcut').onclick=()=>{startGame('sprint');goView('play');};$('how-to').onclick=instructions;$('sound-toggle').onclick=()=>{audioOn=!audioOn;localStorage.setItem('bloqvex_audio',String(audioOn));$('sound-toggle').textContent=audioOn?'🔊 '+t('sound'):'🔇 '+t('sound');toast(audioOn?'🔊 ON':'🔇 OFF');};
@@ -112,6 +155,6 @@ function bind(){document.querySelectorAll('[data-view]').forEach(b=>b.addEventLi
  $('admin-send').onclick=async()=>{if(api.player?.role!=='admin')return;try{const body=$('admin-notice').value.trim();if(!body)throw new Error('Write a message first');const one=$('admin-recipient-mode').value==='one';const target=one?$('admin-target').value.trim():null;if(one&&!target)throw new Error('Choose a member from the list');await api.adminSend(body,target);$('admin-notice').value='';toast('Sent 📢');renderAdmin();}catch(e){error(e)}};
  $('modal-close').onclick=closeModal;$('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeModal();});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});document.addEventListener('click',e=>{if(e.target.closest('[data-auth-modal]'))authModal();});
  installBoardGestures();}
-async function init(){applyLang();bind();updateIdentity();updateProgress();startGame('classic');renderShop();clock=setInterval(()=>{if(game){game.tick();if(mode==='sprint'||mode==='battle')$('lines').textContent=`${game.remaining()}s`;}if(room&&viewName==='battle')renderRoom();},1000);
+async function init(){applyLang();applyBackground();bind();updateIdentity();updateProgress();startGame('classic');renderShop();renderBackgrounds();clock=setInterval(()=>{if(game){game.tick();if(mode==='sprint'||mode==='battle')$('lines').textContent=`${game.remaining()}s`;}if(room&&viewName==='battle')renderRoom();},1000);
  const connected=await api.initializeCloud(async()=>{updateIdentity();if(!api.account){if(room)await leaveRoom();}else{refreshNotices();}});if(connected){updateIdentity();refreshNotices();}if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});}
 init().catch(error);

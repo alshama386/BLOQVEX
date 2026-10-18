@@ -40,10 +40,16 @@ export class PuzzleGame{
     const rows=[],cols=[];
     for(let iy=0;iy<SIZE;iy++){if(this.board[iy].every(Boolean))rows.push(iy);if(this.board.every(r=>r[iy]))cols.push(iy);}
     const cleared=rows.length+cols.length;
-    if(cleared){this.combo++;this.bestCombo=Math.max(this.bestCombo,this.combo);this.lines+=cleared;
+    if(cleared){
+      // Snapshot every affected square (including intersections once) for the fade animation.
+      const cells=new Map();
+      for(const iy of rows)for(let ix=0;ix<SIZE;ix++)cells.set(`${ix},${iy}`,{x:ix,y:iy,color:this.board[iy][ix]});
+      for(const ix of cols)for(let iy=0;iy<SIZE;iy++)cells.set(`${ix},${iy}`,{x:ix,y:iy,color:this.board[iy][ix]});
+      const clearedCells=[...cells.values()];
+      this.combo++;this.bestCombo=Math.max(this.bestCombo,this.combo);this.lines+=cleared;
       for(const iy of rows)this.board[iy].fill(null);
       for(const ix of cols)for(let iy=0;iy<SIZE;iy++)this.board[iy][ix]=null;
-      this.onClear({rows,cols,cleared,combo:this.combo});
+      this.onClear({rows,cols,cleared,combo:this.combo,cells:clearedCells});
     }else this.combo=0;
     this.score+=p.cells.length*10+(cleared?cleared*110+Math.max(0,cleared-1)*90+Math.max(0,this.combo-1)*50:0);
     if(this.pieces.every(p=>!p)){this.turn++;this.pieces=this.newPieces();}
