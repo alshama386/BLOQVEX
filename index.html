@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" href="assets/icon-192.png" />
   <link rel="apple-touch-icon" href="assets/icon-192.png" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=1.0.2" />
   <title>BLOQVEX | بلوكڤكس</title>
 </head>
 <body>
@@ -25,10 +25,11 @@
         <button class="nav-btn" data-view="leaderboard"><span>🏆</span><b data-i18n="leaderboard">المتصدرون</b></button>
         <button class="nav-btn" data-view="friends"><span>👥</span><b data-i18n="friends">الأصدقاء</b></button>
         <button class="nav-btn" data-view="shop"><span>🎨</span><b data-i18n="shop">المتجر</b></button>
+        <button class="nav-btn" data-view="backgrounds"><span>🖼️</span><b data-i18n="backgrounds">الخلفيات</b></button>
         <button class="nav-btn" data-view="profile"><span>👤</span><b data-i18n="profile">حسابي</b></button>
         <button class="nav-btn" data-view="admin" id="admin-nav" hidden><span>🛡️</span><b data-i18n="admin">الإدارة</b></button>
       </nav>
-      <div class="sidebar-foot"><span class="online-dot"></span><span id="cloud-state">وضع الضيف • جاهز للعب</span><small>V1.0.0</small></div>
+      <div class="sidebar-foot"><span class="online-dot"></span><span id="cloud-state">وضع الضيف • جاهز للعب</span><small>V1.0.2</small></div>
     </aside>
 
     <div class="main-area">
@@ -51,7 +52,7 @@
           </div>
           <div class="main-grid">
             <section class="card game-card">
-              <div class="game-heading"><div><h3 data-i18n="boardTitle">لوحة اللعب 🧩</h3><p id="game-status">اختَر المستوى وابدأ اللعب</p></div><button class="light-btn" id="new-game">↻ <span data-i18n="restart">لعبة جديدة</span></button></div>
+              <div class="game-heading"><div><h3 data-i18n="boardTitle">لوحة اللعب 🧩</h3><p id="game-status">اختَر المستوى وابدأ اللعب</p></div><div class="game-heading-actions"><button class="light-btn" id="open-backgrounds">🖼️ <span data-i18n="backgrounds">الخلفيات</span></button><button class="light-btn" id="new-game">↻ <span data-i18n="restart">لعبة جديدة</span></button></div></div>
               <div class="mode-row" id="mode-row">
                 <button class="mode-btn selected" data-mode="classic">♾️ <span data-i18n="classic">كلاسيك</span></button>
                 <button class="mode-btn" data-mode="sprint">⏱️ <span data-i18n="sprint">سباق 120 ثانية</span></button>
@@ -63,7 +64,7 @@
                 <div class="stat peach"><span data-i18n="combo">كومبو</span><strong id="combo">×0</strong></div>
                 <div class="stat mint"><span id="timer-label">الصفوف</span><strong id="lines">0</strong></div>
               </div>
-              <div class="board-wrap"><div id="board" class="board" role="grid" aria-label="8 by 8 puzzle board"></div></div>
+              <div class="board-wrap" id="board-wrap"><div id="board" class="board" role="grid" aria-label="8 by 8 puzzle board"></div><div id="line-effects" class="line-effects" aria-hidden="true"></div></div>
               <div class="pieces-label"><span data-i18n="placePieces">اسحب القطع أو اضغط القطعة ثم اللوحة 👆</span><span id="turn-count">1</span></div>
               <div class="pieces-tray" id="piece-tray" aria-label="Available shapes"></div>
               <div class="game-footer"><button class="outline-btn" id="how-to">❔ <span data-i18n="how">طريقة اللعب</span></button><div id="game-feedback" aria-live="polite">✨ GO BLOQVEX!</div><button class="outline-btn" id="sound-toggle">🔊 <span data-i18n="sound">الصوت</span></button></div>
@@ -85,15 +86,20 @@
         <section class="screen" id="view-leaderboard"><div class="section-head"><div><h2>🏆 <span data-i18n="leaderboard">المتصدرون</span></h2><p data-i18n="leaderDesc">أبطال BLOQVEX حول العالم!</p></div><div class="leader-filters"><select id="leader-mode" class="select"><option value="classic">Classic</option><option value="sprint">Sprint</option><option value="daily">Daily</option></select><select id="leader-country" class="select"><option value="ALL">🌍 العالم / Global</option><option value="KW">🇰🇼 الكويت</option><option value="SA">🇸🇦 السعودية</option><option value="AE">🇦🇪 الإمارات</option><option value="BH">🇧🇭 البحرين</option><option value="QA">🇶🇦 قطر</option><option value="OM">🇴🇲 عمان</option><option value="EG">🇪🇬 مصر</option><option value="MA">🇲🇦 المغرب</option><option value="IQ">🇮🇶 العراق</option><option value="US">🇺🇸 USA</option><option value="GB">🇬🇧 UK</option></select></div></div><div class="card list-card" id="leaders-list"></div></section>
         <section class="screen" id="view-friends"><div class="section-head"><div><h2>👥 <span data-i18n="friends">الأصدقاء</span></h2><p data-i18n="friendsDesc">ضيف أصحابك وخلك على تواصل.</p></div></div><div class="card"><h3 data-i18n="findFriends">ابحث عن لاعب</h3><div class="input-row"><input id="friend-query" placeholder="اسم اللاعب" /><button class="primary-btn" id="search-friends" data-i18n="search">بحث</button></div><div id="friend-results"></div></div><div class="card sub-card"><h3 data-i18n="requests">طلبات الصداقة</h3><div id="friend-requests"></div></div><div class="card sub-card"><h3 data-i18n="yourFriends">أصدقاؤك</h3><div id="friends-list"></div></div></section>
         <section class="screen" id="view-shop"><div class="section-head"><div><h2>🎨 <span data-i18n="shop">المتجر</span></h2><p data-i18n="shopDesc">غيّر شكل المكعبات بألوانك المفضلة! الشراء بعملات اللعبة فقط.</p></div></div><div class="shop-grid" id="shop-items"></div></section>
+        <section class="screen" id="view-backgrounds">
+          <div class="section-head"><div><h2>🖼️ <span data-i18n="backgrounds">الخلفيات</span></h2><p data-i18n="backgroundsDesc">اختَر شكل خلفية اللعبة ولوحة المكعبات. التغيير فوري ومجاني!</p></div></div>
+          <div class="background-grid" id="background-options" aria-label="Background choices"></div>
+          <p class="background-note" data-i18n="backgroundsNote">✨ الخلفية تنحفظ على جهازك، وتقدر تغيّرها في أي وقت بدون ما تخسر نتيجتك.</p>
+        </section>
         <section class="screen" id="view-profile"><div class="section-head"><div><h2>👤 <span data-i18n="profile">حسابي</span></h2><p data-i18n="profileDesc">لاعب اليوم، بطل باچر! 🌟</p></div></div><div class="card profile-card"><div class="profile-heading"><span class="profile-avatar">😎</span><div><h3 id="profile-name">لاعب ضيف</h3><p id="profile-account">حساب محلي</p></div></div><label data-i18n="nickname">اسم اللاعب</label><input id="nickname-input" maxlength="20" placeholder="اسم اللاعب" /><label data-i18n="country">الدولة</label><select id="country-input" class="select"><option value="KW">🇰🇼 الكويت</option><option value="SA">🇸🇦 السعودية</option><option value="AE">🇦🇪 الإمارات</option><option value="BH">🇧🇭 البحرين</option><option value="QA">🇶🇦 قطر</option><option value="OM">🇴🇲 عمان</option><option value="EG">🇪🇬 مصر</option><option value="MA">🇲🇦 المغرب</option><option value="IQ">🇮🇶 العراق</option><option value="US">🇺🇸 USA</option><option value="GB">🇬🇧 UK</option><option value="OTHER">🌍 أخرى</option></select><button class="primary-btn" id="save-profile" data-i18n="save">حفظ التغييرات</button><button class="outline-btn" id="profile-auth" data-i18n="login">تسجيل الدخول / حساب جديد</button><div class="profile-shortcuts"><button class="outline-btn" id="profile-friends">👥 الأصدقاء / Friends</button><button class="outline-btn" id="profile-admin" hidden>🛡️ الإدارة / Admin</button></div><div class="profile-note" data-i18n="guestNote">اللعب كضيف يحفظ تقدمك على هذا الجهاز فقط. سجّل حساباً للمزامنة.</div></div></section>
         <section class="screen" id="view-admin"><div class="section-head"><div><h2>🛡️ <span data-i18n="admin">الإدارة</span></h2><p data-i18n="adminDesc">لوحة خاصة بالحساب المخوّل من قاعدة البيانات.</p></div></div><div class="card"><h3 data-i18n="sendNotice">إرسال إعلان داخل اللعبة</h3><p class="muted">للجميع أو لاعب واحد عبر رقمه الداخلي. لا يتم كشف الإيميلات في لوحة اللاعبين.</p><label>الرسالة / Message</label><textarea id="admin-notice" rows="4" maxlength="500" placeholder="اكتب الإعلان هنا..."></textarea><label>المستلم / Recipient</label><select id="admin-recipient-mode"><option value="all">📢 جميع الأعضاء / All players</option><option value="one">👤 لاعب محدد / One player</option></select><div id="admin-recipient-search" hidden><input id="admin-player-query" placeholder="ابحث عن اسم اللاعب / Search nickname" /><div id="admin-player-results"></div><input type="hidden" id="admin-target" /></div><button class="primary-btn" id="admin-send">إرسال إشعار</button></div><div class="card sub-card"><h3>آخر الإشعارات</h3><div id="admin-notices"></div></div></section>
       </main>
     </div>
   </div>
-  <nav class="bottom-nav" id="bottom-nav"><button class="active" data-view="play"><span>🧩</span><small data-i18n="play">العب</small></button><button data-view="battle"><span>⚔️</span><small data-i18n="battle">تحدي</small></button><button data-view="leaderboard"><span>🏆</span><small data-i18n="leaderboard">الترتيب</small></button><button data-view="shop"><span>🎨</span><small data-i18n="shop">المتجر</small></button><button data-view="profile"><span>👤</span><small data-i18n="profile">حسابي</small></button></nav>
+  <nav class="bottom-nav" id="bottom-nav"><button class="active" data-view="play"><span>🧩</span><small data-i18n="play">العب</small></button><button data-view="battle"><span>⚔️</span><small data-i18n="battle">تحدي</small></button><button data-view="leaderboard"><span>🏆</span><small data-i18n="leaderboard">الترتيب</small></button><button data-view="shop"><span>🎨</span><small data-i18n="shop">المتجر</small></button><button data-view="backgrounds"><span>🖼️</span><small data-i18n="backgrounds">الخلفيات</small></button><button data-view="profile"><span>👤</span><small data-i18n="profile">حسابي</small></button></nav>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div id="modal" class="modal-backdrop" hidden><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title"><button class="modal-close" id="modal-close" aria-label="Close">✕</button><div id="modal-content"></div></div></div>
   <script src="config.js"></script>
-  <script type="module" src="src/app.js"></script>
+  <script type="module" src="src/app.js?v=1.0.2"></script>
 </body>
 </html>
